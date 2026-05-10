@@ -141,8 +141,39 @@ class GenerateResponse(BaseModel):
     llm_model: str
     processing_time_ms: float
 
+    # FAISS index ID for this document (None if FAISS unavailable)
+    faiss_doc_id: Optional[str] = None
+
     # Debug (optional)
     chunk_scores: Optional[List[ChunkScoreBreakdown]] = None
+
+
+# ── FAISS search schemas ───────────────────────────────────────────────────────
+
+class SearchRequest(BaseModel):
+    query: str = Field(..., description="Natural language query to search chunks.")
+    k: int     = Field(default=5, ge=1, le=30, description="Number of results to return.")
+
+
+class ChunkSearchResult(BaseModel):
+    chunk_index: int
+    text: str
+    score: float
+
+
+class SearchResponse(BaseModel):
+    doc_id: str
+    query: str
+    results: List[ChunkSearchResult]
+
+
+class DocumentInfo(BaseModel):
+    doc_id: str
+    name: str
+    total_chunks: int
+    dimension: int
+    created_at: float
+    size_bytes: int
 
 
 class HealthResponse(BaseModel):

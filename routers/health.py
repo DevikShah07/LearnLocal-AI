@@ -16,4 +16,4 @@ async def health():
 
 @router.get("/")
 async def root():
-    return {"message": "SawalAI API — visit /docs for the interactive UI"}
+    return {"message": "LearnLocal Question Generation API — visit /docs for the interactive UI"}

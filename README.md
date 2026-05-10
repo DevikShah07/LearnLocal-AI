@@ -1,4 +1,4 @@
-# SawalAI — Question Generation API
+# LearnLocal Question Generation — Question Generation API
 
 Production-ready FastAPI service: PDF upload → smart chunk selection → parallel LLM calls → structured JSON questions.
 
@@ -86,7 +86,7 @@ Check server status, embedding model, and LLM model.
   "status": "ok",
   "version": "1.0.0",
   "embedding_model": "all-MiniLM-L6-v2",
-  "llm_model": "meta-llama/llama-3-8b-instruct"
+  "llm_model": "openai/gpt-oss-120b:free"
 }
 ```
 
@@ -207,7 +207,7 @@ Same as above but accepts raw text instead of a PDF file.
 
   "total_questions": 14,
   "total_marks": 25,
-  "llm_model": "meta-llama/llama-3-8b-instruct",
+  "llm_model": "openai/gpt-oss-120b:free",
   "processing_time_ms": 4820.3,
 
   "chunk_scores": null

@@ -121,6 +121,7 @@ async def generate_from_pdf(
             top_k=req.top_k,
             language=req.language,
             include_chunk_scores=debug,
+            pdf_size_bytes=len(file_bytes),
         )
     except Exception as e:
         logger.error(f"Pipeline error: {e}", exc_info=True)

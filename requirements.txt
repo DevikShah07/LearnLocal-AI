@@ -1,9 +1,23 @@
 fastapi==0.115.0
 uvicorn[standard]==0.30.6
-httpx==0.27.2
-pypdf==4.3.1
 pydantic==2.9.2
 pydantic-settings==2.5.2
-sentence-transformers==3.1.1
-numpy==1.26.4
 python-multipart==0.0.12
+python-dotenv==1.0.1
+
+# LangChain ecosystem
+langchain>=0.3.0
+langchain-community>=0.3.0
+langchain-openai>=0.2.0
+langchain-huggingface>=0.1.0
+
+# Vector store & embeddings (used by langchain-community)
+faiss-cpu>=1.8.0
+sentence-transformers>=3.1.1
+
+# PDF loading (used by PyPDFLoader)
+pypdf>=4.3.1
+
+# HTTP client (used internally by langchain-openai)
+httpx>=0.27.2
+numpy>=1.26.4

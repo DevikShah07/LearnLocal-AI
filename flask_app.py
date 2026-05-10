@@ -1,5 +1,5 @@
 """
-flask_app.py — SawalAI Web UI
+flask_app.py — LearnLocal Question Generation Web UI
 Runs on http://localhost:5000
 Proxies calls to the FastAPI backend at http://localhost:8000
 """
@@ -49,6 +49,40 @@ def proxy_health():
         return Response(r.content, status=r.status_code, content_type="application/json")
     except requests.exceptions.ConnectionError:
         return jsonify({"status": "offline"}), 503
+
+
+# ── Proxy: FAISS — list documents ──────────────────────────────────────────────
+@app.route("/proxy/docs", methods=["GET"])
+def proxy_list_docs():
+    try:
+        r = requests.get(f"{API_BASE}/api/v1/docs", timeout=10)
+        return Response(r.content, status=r.status_code, content_type="application/json")
+    except requests.exceptions.ConnectionError:
+        return jsonify({"detail": "Cannot reach FastAPI server at port 8000."}), 503
+
+
+# ── Proxy: FAISS — semantic search ─────────────────────────────────────────────
+@app.route("/proxy/docs/<doc_id>/search", methods=["POST"])
+def proxy_search(doc_id):
+    try:
+        r = requests.post(
+            f"{API_BASE}/api/v1/docs/{doc_id}/search",
+            json=request.get_json(),
+            timeout=30,
+        )
+        return Response(r.content, status=r.status_code, content_type="application/json")
+    except requests.exceptions.ConnectionError:
+        return jsonify({"detail": "Cannot reach FastAPI server at port 8000."}), 503
+
+
+# ── Proxy: FAISS — delete document ─────────────────────────────────────────────
+@app.route("/proxy/docs/<doc_id>", methods=["DELETE"])
+def proxy_delete_doc(doc_id):
+    try:
+        r = requests.delete(f"{API_BASE}/api/v1/docs/{doc_id}", timeout=10)
+        return Response(r.content, status=r.status_code, content_type="application/json")
+    except requests.exceptions.ConnectionError:
+        return jsonify({"detail": "Cannot reach FastAPI server at port 8000."}), 503
 
 
 if __name__ == "__main__":

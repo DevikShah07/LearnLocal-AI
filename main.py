@@ -1,5 +1,5 @@
 """
-SawalAI — FastAPI Question Generation Service
+LearnLocal Question Generation — FastAPI Question Generation Service
 =============================================
 Production-ready API for PDF → smart chunk selection → LLM question generation.
 """
@@ -15,26 +15,26 @@ from fastapi.responses import JSONResponse
 
 from core.config import settings
 from core.logger import logger
-from routers import generate, health
+from routers import generate, health, search
 
 
 # ── Lifespan ──────────────────────────────────────────────────────────────────
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    logger.info("SawalAI API starting up…")
+    logger.info("LearnLocal Question Generation API starting up…")
     # Pre-warm embedding model so first request is fast
     from services.embedder import embedder
     embedder.warmup()
     logger.info("Embedding model warmed up.")
     yield
-    logger.info("SawalAI API shutting down.")
+    logger.info("LearnLocal Question Generation API shutting down.")
 
 
 # ── App ───────────────────────────────────────────────────────────────────────
 
 app = FastAPI(
-    title="SawalAI Question Generation API",
+    title="LearnLocal Question Generation Question Generation API",
     description="Upload a PDF, get structured exam questions powered by LLMs.",
     version="1.0.0",
     docs_url="/docs",
@@ -63,7 +63,7 @@ async def request_id_and_timing(request: Request, call_next):
     elapsed = round((time.perf_counter() - start) * 1000, 1)
     response.headers["X-Request-ID"] = request_id
     response.headers["X-Response-Time"] = f"{elapsed}ms"
-    logger.info(f"[{request_id}] {request.method} {request.url.path} → {response.status_code} ({elapsed}ms)")
+    logger.info(f"[{request_id}] {request.method} {request.url.path} -> {response.status_code} ({elapsed}ms)")
     return response
 
 
@@ -82,4 +82,5 @@ async def global_exception_handler(request: Request, exc: Exception):
 
 app.include_router(health.router, tags=["Health"])
 app.include_router(generate.router, prefix="/api/v1", tags=["Question Generation"])
+app.include_router(search.router,   prefix="/api/v1", tags=["Vector Search"])
 
