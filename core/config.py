@@ -11,9 +11,14 @@ load_dotenv()
 
 
 class Settings:
-    # LLM
+    # LLM - OpenRouter
     OPENROUTER_API_KEY: str = os.getenv("OPENROUTER_API_KEY", "")
     OPENROUTER_BASE_URL: str = "https://openrouter.ai/api/v1"
+
+    # LLM - Local (ngrok/localai/ollama)
+    LOCAL_LLM_BASE_URL: str = os.getenv("LOCAL_LLM_BASE_URL", "")
+    LOCAL_LLM_API_KEY: str = os.getenv("LOCAL_LLM_API_KEY", "no-key")  # Default for local models
+
     LLM_MODEL: str = os.getenv("LLM_MODEL", "openai/gpt-oss-120b:free")
     LLM_TEMPERATURE: float = float(os.getenv("LLM_TEMPERATURE", "0.7"))
     LLM_MAX_TOKENS: int = int(os.getenv("LLM_MAX_TOKENS", "3000"))
@@ -27,7 +32,11 @@ class Settings:
     DEFAULT_TOP_K: int = int(os.getenv("DEFAULT_TOP_K", "10"))
     MAX_CONTEXT_TOKENS: int = int(os.getenv("MAX_CONTEXT_TOKENS", "6000"))  # ~24K chars
 
-    # Text splitting (LangChain RecursiveCharacterTextSplitter)
+    # Text splitting (LangChain SemanticChunker)
+    SEMANTIC_BREAKPOINT_TYPE: str = os.getenv("SEMANTIC_BREAKPOINT_TYPE", "percentile")
+    SEMANTIC_BREAKPOINT_THRESHOLD: float = float(os.getenv("SEMANTIC_BREAKPOINT_THRESHOLD", "95"))
+
+    # Legacy splitting (kept for reference or fallback)
     CHUNK_SIZE: int = int(os.getenv("CHUNK_SIZE", "1000"))
     CHUNK_OVERLAP: int = int(os.getenv("CHUNK_OVERLAP", "200"))
 
@@ -41,9 +50,9 @@ class Settings:
     LOG_LEVEL: str = os.getenv("LOG_LEVEL", "INFO")
 
     def __post_init__(self):
-        if not self.OPENROUTER_API_KEY:
+        if not self.OPENROUTER_API_KEY and not self.LOCAL_LLM_BASE_URL:
             warnings.warn(
-                "OPENROUTER_API_KEY is not set! LLM calls will fail with 401.",
+                "Neither OPENROUTER_API_KEY nor LOCAL_LLM_BASE_URL is set! LLM calls will fail.",
                 stacklevel=2,
             )
 

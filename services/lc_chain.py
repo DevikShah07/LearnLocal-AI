@@ -15,7 +15,7 @@ from __future__ import annotations
 
 from typing import List
 
-from langchain_core.output_parsers import JsonOutputParser
+from langchain_core.output_parsers import JsonOutputParser, StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnableParallel
 from langchain_huggingface import HuggingFaceEmbeddings
@@ -100,23 +100,86 @@ Context:
 
 # ── LLM singleton ──────────────────────────────────────────────────────────────
 
-def _build_llm() -> ChatOpenAI:
-    return ChatOpenAI(
-        model=settings.LLM_MODEL,
-        openai_api_key=settings.OPENROUTER_API_KEY,
-        openai_api_base=settings.OPENROUTER_BASE_URL,
-        temperature=settings.LLM_TEMPERATURE,
-        max_tokens=settings.LLM_MAX_TOKENS,
-        max_retries=settings.LLM_MAX_RETRIES,
-        timeout=settings.LLM_TIMEOUT,
-        default_headers={
-            "HTTP-Referer": "https://sawal-ai.app",
-            "X-Title": "LearnLocal Question Generation",
-        },
-    )
+import requests
+from langchain_core.language_models.llms import LLM
 
 
-lc_llm: ChatOpenAI = _build_llm()
+# ── Custom Local LLM Wrapper ──────────────────────────────────────────────────
+
+class CustomLocalLLM(LLM):
+    """
+    A custom LangChain LLM wrapper that matches the user's local 
+    FastAPI/ngrok API structure exactly.
+    """
+    base_url: str
+    model_name: str
+    timeout: int = 60
+
+    def _call(
+        self,
+        prompt: str,
+        stop: List[str] | None = None,
+        run_manager: Any | None = None,
+        **kwargs: Any,
+    ) -> str:
+        data = {
+            "prompt": prompt,
+            "model": self.model_name
+        }
+        try:
+            logger.info(f"Calling Local LLM at {self.base_url}/generate with model {self.model_name}")
+            response = requests.post(
+                f"{self.base_url}/generate", 
+                json=data, 
+                timeout=self.timeout
+            )
+            response.raise_for_status()
+            
+            raw_text = response.json().get("response", "")
+            logger.info(f"RAW LLM RESPONSE (first 200 chars): {raw_text[:200]}...")
+            
+            return raw_text
+        except Exception as e:
+            logger.error(f"Local LLM call failed: {e}")
+            raise
+
+    @property
+    def _llm_type(self) -> str:
+        return "custom_local_ngrok"
+
+
+# ── LLM singleton ──────────────────────────────────────────────────────────────
+
+def _build_llm() -> Any:
+    # ── Option 1: Local LLM (ngrok + custom /generate endpoint) ────────────────
+    if settings.LOCAL_LLM_BASE_URL:
+        logger.info(f"Using Custom Local LLM at {settings.LOCAL_LLM_BASE_URL}")
+        return CustomLocalLLM(
+            base_url=settings.LOCAL_LLM_BASE_URL,
+            model_name=settings.LLM_MODEL,
+            timeout=settings.LLM_TIMEOUT
+        )
+
+    # ── Option 2: OpenRouter (Commented out for reference) ──────────────────────
+    # logger.info(f"Using OpenRouter with model {settings.LLM_MODEL}")
+    # return ChatOpenAI(
+    #     model=settings.LLM_MODEL,
+    #     openai_api_key=settings.OPENROUTER_API_KEY,
+    #     openai_api_base=settings.OPENROUTER_BASE_URL,
+    #     temperature=settings.LLM_TEMPERATURE,
+    #     max_tokens=settings.LLM_MAX_TOKENS,
+    #     max_retries=settings.LLM_MAX_RETRIES,
+    #     timeout=settings.LLM_TIMEOUT,
+    #     default_headers={
+    #         "HTTP-Referer": "https://learnlocal-ai.app",
+    #         "X-Title": "LearnLocal Question Generation",
+    #     },
+    # )
+    
+    raise ValueError("No LLM configuration found! Please set LOCAL_LLM_BASE_URL in your .env file.")
+
+
+lc_llm = _build_llm()
 
 
 # ── Embeddings singleton ───────────────────────────────────────────────────────
@@ -153,7 +216,7 @@ def build_question_chain(cfg: QuestionTypeConfig):
         marks=cfg.marks,
     )
 
-    parser = JsonOutputParser()
+    parser = StrOutputParser()
     return prompt | lc_llm | parser
 
 

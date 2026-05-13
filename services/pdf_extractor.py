@@ -26,10 +26,11 @@ from dataclasses import dataclass, field
 from typing import List, Optional, Tuple
 
 from langchain_community.document_loaders import PyPDFLoader
-from langchain_text_splitters import RecursiveCharacterTextSplitter
+from langchain_experimental.text_splitter import SemanticChunker
 
 from core.config import settings
 from core.logger import logger
+from services.lc_chain import lc_embeddings
 
 
 # ── Data classes (unchanged public API) ───────────────────────────────────────
@@ -116,17 +117,16 @@ def extract_pdf(file_bytes: bytes, filename: str) -> PDFDocument:
         if not pages:
             return PDFDocument(name=filename, total_pages=0, chunks=[], headings=[])
 
-        # ── 3. Split into overlapping chunks ──────────────────────────────────
-        splitter = RecursiveCharacterTextSplitter(
-            chunk_size=settings.CHUNK_SIZE,
-            chunk_overlap=settings.CHUNK_OVERLAP,
-            separators=["\n\n", "\n", ".", " ", ""],
-            length_function=len,
+        # ── 3. Split into semantic chunks ──────────────────────────────────────
+        splitter = SemanticChunker(
+            lc_embeddings,
+            breakpoint_threshold_type=settings.SEMANTIC_BREAKPOINT_TYPE,
+            breakpoint_threshold_amount=settings.SEMANTIC_BREAKPOINT_THRESHOLD,
         )
         docs = splitter.split_documents(pages)
         logger.info(
-            f"[PDF] Split into {len(docs)} chunks "
-            f"(size={settings.CHUNK_SIZE}, overlap={settings.CHUNK_OVERLAP})"
+            f"[PDF] Split into {len(docs)} semantic chunks "
+            f"(type={settings.SEMANTIC_BREAKPOINT_TYPE}, threshold={settings.SEMANTIC_BREAKPOINT_THRESHOLD})"
         )
 
         # ── 4. Convert to PageChunk dataclasses ────────────────────────────────

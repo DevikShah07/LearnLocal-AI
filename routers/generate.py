@@ -66,6 +66,13 @@ Upload a PDF and receive structured exam questions.
 }
 ```
 All fields are optional — defaults apply.
+
+**Generation Limits per request:**
+- MCQ: Max 10
+- True/False: Max 10
+- Short Answer: Max 5
+- Descriptive: Max 5
+- Fill in the Blank: Max 10
 """,
 )
 async def generate_from_pdf(

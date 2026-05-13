@@ -3,10 +3,23 @@ import logging
 import sys
 from core.config import settings
 
-logging.basicConfig(
-    stream=sys.stdout,
-    level=getattr(logging, settings.LOG_LEVEL, logging.INFO),
-    format="%(asctime)s | %(levelname)-8s | %(name)s | %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S",
-)
+import logging
+import sys
+from core.config import settings
+
+# Create logger
 logger = logging.getLogger("LearnLocal")
+logger.setLevel(getattr(logging, settings.LOG_LEVEL, logging.INFO))
+
+# Create formatters
+formatter = logging.Formatter("%(asctime)s | %(levelname)-8s | %(name)s | %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
+
+# Console handler
+ch = logging.StreamHandler(sys.stdout)
+ch.setFormatter(formatter)
+logger.addHandler(ch)
+
+# File handler
+fh = logging.FileHandler("app.log", encoding="utf-8")
+fh.setFormatter(formatter)
+logger.addHandler(fh)

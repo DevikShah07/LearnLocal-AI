@@ -131,27 +131,35 @@ async def run_pipeline(
         f"[Pipeline] Context: {len(selected_texts)} chunks, {context_chars} chars."
     )
 
-    # ── 5. Parallel LLM generation via RunnableParallel ──────────────────────
-    keyword_hint = (
-        f'Focus specifically on the topic: "{keyword}".' if keyword else ""
-    )
+    # ── 5. Parallel LLM generation via Robust LLMClient ──────────────────────
+    from services.llm_client import llm_client
 
-    parallel_chain = build_parallel_chain(question_types)
     logger.info(
-        f"[Pipeline] Running RunnableParallel for "
+        f"[Pipeline] Running robust parallel generation for "
         f"{[cfg.type.value for cfg in question_types]}"
     )
 
+    raw_results: Dict[str, Any] = {}
     try:
-        raw_results: Dict[str, Any] = await parallel_chain.ainvoke({
-            "context":      context,
-            "difficulty":   difficulty.value,
-            "keyword_hint": keyword_hint,
-            "language":     language,
-        })
+        tasks = [
+            llm_client.generate_questions_for_type(
+                cfg=cfg,
+                context=context,
+                difficulty=difficulty,
+                keyword=keyword,
+                language=language
+            ) for cfg in question_types
+        ]
+        
+        # Execute all question generation tasks in parallel
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+        
+        # Map the results back to their respective question types
+        for cfg, result in zip(question_types, results):
+            raw_results[cfg.type.value] = result
+            
     except Exception as exc:
         logger.error(f"[Pipeline] Parallel LLM call failed: {exc}", exc_info=True)
-        raw_results = {}
 
     # ── 6. Assemble output ────────────────────────────────────────────────────
     # Map question type value → config for mark lookup

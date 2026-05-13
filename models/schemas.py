@@ -5,7 +5,7 @@ from __future__ import annotations
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 
 # ── Enums ──────────────────────────────────────────────────────────────────────
@@ -30,6 +30,24 @@ class QuestionTypeConfig(BaseModel):
     type: QuestionType
     count: int = Field(default=5, ge=1, le=30)
     marks: int = Field(default=1, ge=1, le=10)
+
+    @model_validator(mode="after")
+    def check_count_limits(self) -> "QuestionTypeConfig":
+        # Specific limits requested by user
+        limits = {
+            QuestionType.MCQ: 10,
+            QuestionType.TRUE_FALSE: 10,
+            QuestionType.SHORT: 5,
+            QuestionType.DESCRIPTIVE: 5,
+            QuestionType.FILL_BLANK: 10,
+        }
+        max_allowed = limits.get(self.type, 10)
+        if self.count > max_allowed:
+            raise ValueError(
+                f"Maximum {max_allowed} questions allowed for '{self.type.value}'. "
+                f"Requested: {self.count}"
+            )
+        return self
 
 
 class GenerateRequest(BaseModel):
@@ -87,6 +105,8 @@ class FillBlankQuestion(BaseModel):
 
 
 class ShortAnswerQuestion(BaseModel):
+    model_config = ConfigDict(protected_namespaces=())
+    
     question: str
     model_answer: str
     marks: int = 2
